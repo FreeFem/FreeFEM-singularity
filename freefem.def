@@ -1,0 +1,59 @@
+Bootstrap: library
+From: ubuntu:20.04
+
+%help
+  FreeFEM container
+
+%labels
+  Author https://github.com/orgs/FreeFem/people
+
+%post
+  # System installation
+  echo "deb http://us.archive.ubuntu.com/ubuntu focal main universe" > /etc/apt/sources.list
+  apt update && apt upgrade -y
+  apt install -yq cpp freeglut3-dev g++ gcc gfortran \
+    m4 make patch pkg-config wget python unzip \
+    liblapack-dev libhdf5-dev libgsl-dev \
+    autoconf automake autotools-dev bison flex gdb git cmake \
+    mpich
+
+  # # MKL
+  # wget https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+  # apt-key add GPG-PUB-KEY-INTEL-SW-PRODUCTS-2019.PUB
+  # sh -c 'echo deb https://apt.repos.intel.com/mkl all main > /etc/apt/sources.list.d/intel-mkl.list'
+  # apt update
+  # apt install -yq intel-mkl-64bit-2018.2-046
+
+  # # update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so \
+  # #   libblas.so-x86_64-linux-gnu /opt/intel/mkl/lib/intel64/libmkl_rt.so 50
+  # # update-alternatives --install /usr/lib/x86_64-linux-gnu/libblas.so.3 \
+  # #   libblas.so.3-x86_64-linux-gnu /opt/intel/mkl/lib/intel64/libmkl_rt.so 50
+  # # update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so \
+  # #   liblapack.so-x86_64-linux-gnu /opt/intel/mkl/lib/intel64/libmkl_rt.so 50
+  # # update-alternatives --install /usr/lib/x86_64-linux-gnu/liblapack.so.3 \
+  # #   liblapack.so.3-x86_64-linux-gnu /opt/intel/mkl/lib/intel64/libmkl_rt.so 50
+  # --with-mkl=/opt/intel/mkl/lin/intel64
+
+  # Clean
+  apt autoremove && apt clean
+  rm -rf /var/lib/apt/lists/*
+
+  # Working directory
+  cd /tmp
+
+  # FreeFEM
+  git clone https://github.com/FreeFem/FreeFem-sources.git freefem
+  cd freefem
+  autoreconf -i
+  ./configure --enable-download --enable-optim
+  ./3rdparty/getall -a
+  cd 3rdparty/ff-petsc
+  make petsc-slepc
+  cd -
+  ./reconfigure
+  make -j "$(nproc)"
+  make check
+  make install
+
+  # Cleanup
+  rm -Rf /tmp/freefem
